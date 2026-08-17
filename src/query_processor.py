@@ -130,7 +130,7 @@ def process_all_queries(
     results: list[dict[str, Any]] = []
 
     for idx, sql in enumerate(queries, start=1):
-        logger.info("─" * 60)
+        logger.info("-" * 60)
         logger.info("Query %d / %d", idx, total)
         result = process_query(sql, snowflake_conn)
         results.append(result)
