@@ -1,0 +1,43 @@
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Environment credentials — NEVER commit this
+.env
+
+# Output files (generated at runtime)
+output/output_results.xlsx
+
+# Log files
+logs/*.log
+
+# Distribution / packaging
+*.egg-info/
+dist/
+build/
+
+# pytest cache
+.pytest_cache/
+.cache/
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary Excel locks
+~$*.xlsx
+~$*.xls

@@ -1,0 +1,15 @@
+# ─── Core SQL / Data dependencies ────────────────────────────────────────────
+sqlglot>=23.0.0,<24.0.0
+pandas>=2.0.0,<3.0.0
+openpyxl>=3.1.0,<4.0.0
+
+# ─── Snowflake connector ──────────────────────────────────────────────────────
+# NOTE: snowflake-connector-python ships its own version of several packages
+# (requests, cryptography, etc.). Pin the connector to a known-good range.
+snowflake-connector-python>=3.5.0,<4.0.0
+
+# ─── Environment / configuration ─────────────────────────────────────────────
+python-dotenv>=1.0.0,<2.0.0
+
+# ─── Testing ──────────────────────────────────────────────────────────────────
+pytest>=7.4.0,<9.0.0
