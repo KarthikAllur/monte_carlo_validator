@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 # ── Column names (single source of truth) ─────────────────────────────────────
 
-INPUT_QUERY_COLUMN: str = "query"
+INPUT_QUERY_COLUMN: str = "Snowflake Compatible SQL Query"
 
 OUTPUT_COLUMNS: list[str] = [
     "query",
@@ -40,7 +40,7 @@ OUTPUT_COLUMNS: list[str] = [
 
 # Friendly display headers shown in Excel
 COLUMN_HEADERS: dict[str, str] = {
-    "query":             "Monte Carlo Query",
+    "query":             "Snowflake Compatible SQL Query",
     "total_count_query": "Total Count Query",
     "error_count_query": "Error Count Query",
     "total_count":       "Total Count",

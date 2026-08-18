@@ -16,68 +16,219 @@ except ImportError:
     sys.exit(1)
 
 SAMPLE_QUERIES = [
-    # 1. Simple WHERE
-    "SELECT customer_id, name FROM customers WHERE age IS NULL",
-    # 2. No WHERE
-    "SELECT id, name FROM customers",
-    # 3. Multiple conditions
-    "SELECT id FROM orders WHERE amount <= 0 AND status = 'PENDING'",
-    # 4. LEFT JOIN
-    (
-        "SELECT a.id FROM customers a "
-        "LEFT JOIN addresses b ON a.id = b.customer_id "
-        "WHERE a.status = 'ACTIVE' AND b.country = 'US'"
-    ),
-    # 5. IN subquery — inner WHERE must NOT be the outer error condition
-    (
-        "SELECT a.id FROM customers a "
-        "WHERE a.id IN (SELECT customer_id FROM orders WHERE status = 'ACTIVE')"
-    ),
-    # 6. CTE — inner CTE WHERE must NOT become the outer error condition
-    (
-        "WITH customer_data AS ("
-        "    SELECT * FROM customers WHERE status = 'ACTIVE'"
-        ") "
-        "SELECT * FROM customer_data WHERE age IS NULL"
-    ),
-    # 7. EXISTS subquery
-    (
-        "SELECT c.id FROM customers c "
-        "WHERE EXISTS ("
-        "    SELECT 1 FROM orders o "
-        "    WHERE o.customer_id = c.id AND o.status = 'CANCELLED'"
-        ")"
-    ),
-    # 8. CASE in WHERE
-    (
-        "SELECT id FROM transactions "
-        "WHERE CASE WHEN amount > 0 THEN 'CREDIT' ELSE 'DEBIT' END = 'DEBIT'"
-    ),
-    # 9. Function in WHERE
-    "SELECT id FROM events WHERE DATEDIFF('day', created_at, CURRENT_DATE()) > 30",
-    # 10. Multiple nested subqueries
-    (
-        "SELECT a.id FROM customers a "
-        "WHERE a.region_id IN ("
-        "    SELECT region_id FROM regions "
-        "    WHERE country_id IN ("
-        "        SELECT country_id FROM countries WHERE iso_code = 'US'"
-        "    )"
-        ")"
-    ),
+    # Q01 - Customers with NULL name
+    """SELECT
+    customer_id,
+    account_type,
+    region,
+    join_date
+FROM CUSTOMERS
+WHERE customer_name IS NULL""",
+
+    # Q02 - Transactions with NULL amount
+    """SELECT
+    transaction_id,
+    customer_id,
+    tx_date,
+    tx_type,
+    status
+FROM TRANSACTIONS
+WHERE amount IS NULL""",
+
+    # Q03 - Transactions with negative amount
+    """SELECT
+    transaction_id,
+    customer_id,
+    tx_date,
+    tx_type,
+    amount,
+    status
+FROM TRANSACTIONS
+WHERE amount < 0""",
+
+    # Q04 - Transactions with invalid status
+    """SELECT
+    transaction_id,
+    customer_id,
+    tx_date,
+    amount,
+    status
+FROM TRANSACTIONS
+WHERE status NOT IN ('COMPLETED', 'PENDING', 'FAILED', 'REVERSED')""",
+
+    # Q05 - Customers with unrecognised risk rating
+    """SELECT
+    customer_id,
+    customer_name,
+    account_type,
+    risk_rating
+FROM CUSTOMERS
+WHERE risk_rating NOT IN ('LOW', 'MEDIUM', 'HIGH')""",
+
+    # Q06 - Orphaned transactions (no matching customer)
+    """SELECT
+    t.transaction_id,
+    t.customer_id,
+    t.tx_date,
+    t.amount,
+    t.status
+FROM TRANSACTIONS t
+LEFT JOIN CUSTOMERS c
+    ON t.customer_id = c.customer_id
+WHERE c.customer_id IS NULL""",
+
+    # Q07 - Transactions referencing unknown product
+    """SELECT
+    t.transaction_id,
+    t.customer_id,
+    t.product_id,
+    t.amount,
+    t.tx_date
+FROM TRANSACTIONS t
+LEFT JOIN PRODUCTS p
+    ON t.product_id = p.product_id
+WHERE p.product_id IS NULL""",
+
+    # Q08 - Account summary records with no matching customer
+    """SELECT
+    a.account_id,
+    a.customer_id,
+    a.current_balance,
+    a.currency,
+    a.last_updated
+FROM ACCOUNT_SUMMARY a
+LEFT JOIN CUSTOMERS c
+    ON a.customer_id = c.customer_id
+WHERE c.customer_id IS NULL""",
+
+    # Q09 - Customers with no transaction history
+    """SELECT
+    customer_id,
+    customer_name,
+    account_type,
+    risk_rating,
+    join_date
+FROM CUSTOMERS
+WHERE customer_id NOT IN (
+    SELECT DISTINCT customer_id
+    FROM TRANSACTIONS
+    WHERE customer_id IS NOT NULL
+)""",
+
+    # Q10 - Accounts with at least one FAILED transaction
+    """SELECT
+    a.account_id,
+    a.customer_id,
+    a.current_balance,
+    a.currency
+FROM ACCOUNT_SUMMARY a
+WHERE EXISTS (
+    SELECT 1
+    FROM TRANSACTIONS t
+    WHERE t.customer_id = a.customer_id
+      AND t.status = 'FAILED'
+)""",
+
+    # Q11 - Transactions with future TX_DATE
+    """SELECT
+    transaction_id,
+    customer_id,
+    tx_date,
+    amount,
+    status
+FROM TRANSACTIONS
+WHERE tx_date > CURRENT_DATE()""",
+
+    # Q12 - Accounts with negative current balance
+    """SELECT
+    account_id,
+    customer_id,
+    current_balance,
+    currency,
+    last_updated
+FROM ACCOUNT_SUMMARY
+WHERE current_balance < 0""",
+
+    # Q13 - Products with NULL or zero minimum balance
+    """SELECT
+    product_id,
+    product_name,
+    category,
+    interest_rate_pct,
+    min_balance
+FROM PRODUCTS
+WHERE min_balance IS NULL
+   OR min_balance <= 0""",
+
+    # Q14 - High-risk customers with negative account balances (CTE)
+    """WITH high_risk_customers AS (
+    SELECT
+        customer_id,
+        customer_name,
+        risk_rating
+    FROM CUSTOMERS
+    WHERE risk_rating = 'HIGH'
+)
+SELECT
+    a.account_id,
+    h.customer_name,
+    h.risk_rating,
+    a.current_balance,
+    a.currency
+FROM ACCOUNT_SUMMARY a
+INNER JOIN high_risk_customers h
+    ON a.customer_id = h.customer_id
+WHERE a.current_balance < 0""",
+
+    # Q15 - Transactions missing critical fields
+    """SELECT
+    transaction_id,
+    customer_id,
+    product_id,
+    tx_date,
+    tx_type,
+    status,
+    branch_code
+FROM TRANSACTIONS
+WHERE tx_type IS NULL
+   OR status IS NULL
+   OR branch_code IS NULL""",
 ]
 
 OUTPUT_PATH = Path("input/input_queries.xlsx")
 
 
+SAMPLE_LABELS = [
+    "Q01 - Customers with NULL name",
+    "Q02 - Transactions with NULL amount",
+    "Q03 - Transactions with negative amount",
+    "Q04 - Transactions with invalid status",
+    "Q05 - Customers with unrecognised risk rating",
+    "Q06 - Orphaned transactions (no matching customer)",
+    "Q07 - Transactions referencing unknown product",
+    "Q08 - Account summary records with no matching customer",
+    "Q09 - Customers with no transaction history",
+    "Q10 - Accounts with at least one FAILED transaction",
+    "Q11 - Transactions with future TX_DATE",
+    "Q12 - Accounts with negative current balance",
+    "Q13 - Products with NULL or zero minimum balance",
+    "Q14 - High-risk customers with negative account balances (CTE)",
+    "Q15 - Transactions missing critical fields (tx_type, status, or branch_code)",
+]
+
+
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
-    df = pd.DataFrame({"query": SAMPLE_QUERIES})
+    df = pd.DataFrame({
+        "label":                         SAMPLE_LABELS,
+        "Snowflake Compatible SQL Query": SAMPLE_QUERIES,
+    })
     df.to_excel(str(OUTPUT_PATH), index=False, engine="openpyxl")
 
     print(f"Sample input file created: {OUTPUT_PATH}")
     print(f"  Rows written: {len(df)}")
+
 
 
 if __name__ == "__main__":
